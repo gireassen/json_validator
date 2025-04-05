@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Validator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced JSON Validator</h1>
+        <form method="post">
+            <div class="editor-wrapper">
+                <div class="line-numbers" id="line-numbers"></div>
+                <textarea name="json_data" id="json-editor" placeholder='{
+    "example": "json",
+    "with": ["proper", "formatting"]
+}'></textarea>
+            </div>
+            <br>
+            <button type="submit">Validate & Format</button>
+        </form>
+    </div>
+    <script src="/static/script.js"></script>
+    <script>
+        initEditor();
+    </script>
+</body>
+</html>
