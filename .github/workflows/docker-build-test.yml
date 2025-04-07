@@ -1,0 +1,33 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: docker build -t json-validator .
+      
+    - name: Run container
+      run: |
+        docker run -d -p 8000:8000 --name json-validator json-validator
+        sleep 3
+        
+    - name: Test endpoint
+      run: |
+        curl -sSf http://localhost:8000/ > /dev/null
+        curl -sSf http://localhost:8000/static/style.css > /dev/null
+        curl -sSf http://localhost:8000/static/script.js > /dev/null
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        docker stop json-validator || true
+        docker rm json-validator || true
