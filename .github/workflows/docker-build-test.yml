@@ -5,18 +5,12 @@ on:
     branches: [main, test-branch]
     paths-ignore:
       - 'README.md'
-      - 'docker-build-test.yml'
   pull_request:
     branches: [main, test-branch]
-    paths-ignore:
-      - 'README.md'
-      - 'docker-build-test.yml'
 
 env:
   IMAGE_NAME: json_validator
   DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/json_validator
-  REGISTRY: docker.io
-  VERSION: ${{ github.sha }}
 
 jobs:
   build-test-deploy:
@@ -29,32 +23,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Show repository structure
+        run: ls -laR
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          cache: 'pip'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -r requirements.txt
           pip install pytest requests
-
-      - name: Create test files
-        run: |
-          mkdir -p templates static
-          echo "<html>Test index</html>" > templates/index.html
-          echo "<html>Test result</html>" > templates/result.html
-          echo "/* test css */" > static/style.css
-          echo "// test js" > static/script.js
 
       - name: Run unit tests
         run: |
@@ -74,29 +55,14 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: |
-            ${{ env.DOCKERHUB_REPO }}:latest
-            ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }}
-          labels: |
-            org.opencontainers.image.source=${{ github.repository_url }}
-            org.opencontainers.image.created=${{ steps.get-date.outputs.date }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.DOCKERHUB_REPO }}:latest
 
       - name: Test Docker container
         run: |
           docker run -d -p 8000:8000 --name ${{ env.IMAGE_NAME }} ${{ env.IMAGE_NAME }}
           sleep 5
-          
-          # Basic health checks
-          curl -sSf http://localhost:8000/ | grep -q "Test index"
-          curl -sSf http://localhost:8000/static/style.css | grep -q "test css"
-          curl -sSf http://localhost:8000/static/script.js | grep -q "test js"
-          
-          # Run integration tests
+          curl -sSf http://localhost:8000/
           python -m pytest -v test_server.py --base-url http://localhost:8000
 
       - name: Cleanup
