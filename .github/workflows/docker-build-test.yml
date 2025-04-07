@@ -2,12 +2,12 @@ name: Docker Build, Test and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, test-branch]
     paths-ignore:
       - 'README.md'
       - 'docker-build-test.yml'
   pull_request:
-    branches: [main]
+    branches: [main, test-branch]
     paths-ignore:
       - 'README.md'
       - 'docker-build-test.yml'
