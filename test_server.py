@@ -3,46 +3,54 @@ import pytest
 import json
 import time
 import socket
-from threading import Thread
-from server import run_server, PORT
+from http.server import HTTPServer
+from server import JSONValidatorHandler, PORT
+from socket import socket
 
+def find_free_port():
+    with socket() as s:
+        s.bind(('', 0))
+        return s.getsockname()[1]
+
+TEST_PORT = find_free_port()
+PORT = TEST_PORT
 BASE_URL = f"http://localhost:{PORT}"
-
-def is_port_in_use(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
 
 @pytest.fixture(scope="module")
 def server():
-    # Проверяем, занят ли порт
-    if is_port_in_use(PORT):
-        pytest.skip(f"Port {PORT} is already in use")
-
-    # Запускаем сервер в отдельном потоке
-    server_thread = Thread(target=run_server)
+    # Создаем сервер, но пока не запускаем
+    server = HTTPServer(('localhost', PORT), JSONValidatorHandler)
+    
+    # Запускаем в отдельном потоке
+    import threading
+    server_thread = threading.Thread(target=server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
     
-    # Ждем, пока сервер не станет доступен
-    for _ in range(10):
-        try:
-            requests.get(f"{BASE_URL}/", timeout=1)
-            break
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-            time.sleep(0.5)
-    else:
-        pytest.fail("Server did not start in time")
+    # Даем серверу время на запуск
+    time.sleep(1)
     
-    yield
+    yield server
     
-    # Сервер остановится автоматически, так как это демон-поток
+    # Останавливаем сервер после тестов
+    server.shutdown()
+    server.server_close()
+    server_thread.join()
+
+def is_server_running():
+    try:
+        return requests.get(f"{BASE_URL}/", timeout=1).status_code == 200
+    except:
+        return False
 
 def test_index_page(server):
+    assert is_server_running(), "Server is not running"
     response = requests.get(f"{BASE_URL}/", timeout=5)
     assert response.status_code == 200
     assert "text/html" in response.headers["Content-Type"]
 
 def test_static_files(server):
+    assert is_server_running(), "Server is not running"
     content_types = {
         "style.css": "text/css",
         "script.js": "application/javascript"
@@ -54,6 +62,7 @@ def test_static_files(server):
         assert expected_type in response.headers["Content-Type"]
 
 def test_valid_json(server):
+    assert is_server_running(), "Server is not running"
     valid_json = json.dumps({
         "project": "JSON Validator",
         "version": "1.0.0",
@@ -96,6 +105,7 @@ def test_valid_json(server):
     assert "✓ Valid JSON" in response.text
 
 def test_invalid_json(server):
+    assert is_server_running(), "Server is not running"
     invalid_json = """
     {
         "project": "JSON Validator",
