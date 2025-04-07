@@ -11,9 +11,8 @@ on:
       - '**'
 
 env:
-  REGISTRY: docker.io
-  IMAGE_NAME: json-validator
-  DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/json_validator  # ЗАМЕНИТЕ НА СВОИ ДАННЫЕ
+  IMAGE_NAME: json_validator
+  DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/${{ IMAGE_NAME }}  # ЗАМЕНИТЕ НА СВОИ ДАННЫЕ
 
 jobs:
   build-and-deploy:
