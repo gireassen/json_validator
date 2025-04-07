@@ -68,6 +68,7 @@ jobs:
       # Тестирование образа
       - name: Test Docker image
         run: |
+          docker build -t ${{ env.IMAGE_NAME }} .
           docker run -d -p 8000:8000 --name ${{ env.IMAGE_NAME }} ${{ env.IMAGE_NAME }}
           sleep 5
           curl -sSf http://localhost:8000/
