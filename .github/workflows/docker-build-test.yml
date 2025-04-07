@@ -13,7 +13,7 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: json-validator
-  DOCKERHUB_REPO: gireassen/json_validator  # ЗАМЕНИТЕ НА СВОИ ДАННЫЕ
+  DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/json_validator  # ЗАМЕНИТЕ НА СВОИ ДАННЫЕ
 
 jobs:
   build-and-deploy:
