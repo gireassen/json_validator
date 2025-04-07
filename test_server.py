@@ -2,36 +2,56 @@ import requests
 import pytest
 import json
 import time
+import socket
 from threading import Thread
 from server import run_server, PORT
 
 BASE_URL = f"http://localhost:{PORT}"
 
+def is_port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
 @pytest.fixture(scope="module")
 def server():
+    # Проверяем, занят ли порт
+    if is_port_in_use(PORT):
+        pytest.skip(f"Port {PORT} is already in use")
+
     # Запускаем сервер в отдельном потоке
     server_thread = Thread(target=run_server)
     server_thread.daemon = True
     server_thread.start()
     
-    # Даем серверу время на запуск
-    time.sleep(2)
+    # Ждем, пока сервер не станет доступен
+    for _ in range(10):
+        try:
+            requests.get(f"{BASE_URL}/", timeout=1)
+            break
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            time.sleep(0.5)
+    else:
+        pytest.fail("Server did not start in time")
     
-    yield  # здесь выполняются тесты
+    yield
     
-    # По завершении тестов сервер будет остановлен автоматически,
-    # так как это демон-поток
+    # Сервер остановится автоматически, так как это демон-поток
 
 def test_index_page(server):
-    response = requests.get(f"{BASE_URL}/")
+    response = requests.get(f"{BASE_URL}/", timeout=5)
     assert response.status_code == 200
     assert "text/html" in response.headers["Content-Type"]
 
 def test_static_files(server):
-    for file in ["style.css", "script.js"]:
-        response = requests.get(f"{BASE_URL}/static/{file}")
+    content_types = {
+        "style.css": "text/css",
+        "script.js": "application/javascript"
+    }
+    
+    for file, expected_type in content_types.items():
+        response = requests.get(f"{BASE_URL}/static/{file}", timeout=5)
         assert response.status_code == 200
-        assert file.split(".")[-1] in response.headers["Content-Type"]
+        assert expected_type in response.headers["Content-Type"]
 
 def test_valid_json(server):
     valid_json = json.dumps({
@@ -68,7 +88,8 @@ def test_valid_json(server):
     
     response = requests.post(
         f"{BASE_URL}/",
-        data={"json_data": valid_json}
+        data={"json_data": valid_json},
+        timeout=5
     )
     
     assert response.status_code == 200
@@ -93,7 +114,8 @@ def test_invalid_json(server):
     
     response = requests.post(
         f"{BASE_URL}/",
-        data={"json_data": invalid_json}
+        data={"json_data": invalid_json},
+        timeout=5
     )
     
     assert response.status_code == 200
