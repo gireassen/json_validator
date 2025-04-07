@@ -1,33 +1,73 @@
-name: Docker Build and Test
+name: Docker Build and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+env:
+  IMAGE_NAME: json-validator
+  DOCKERHUB_REPO: your-dockerhub-username/your-repo-name  # Замените на свои данные
+  VERSION: ${{ github.sha }}
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build Docker image
-      run: docker build -t json-validator .
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Настройка Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      # Логин в Docker Hub
+      - name: Login to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Сборка и push образа
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.DOCKERHUB_REPO }}:latest
+            ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository_url }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
       
-    - name: Run container
-      run: |
-        docker run -d -p 8000:8000 --name json-validator json-validator
-        sleep 3
-        
-    - name: Test endpoint
-      run: |
-        curl -sSf http://localhost:8000/ > /dev/null
-        curl -sSf http://localhost:8000/static/style.css > /dev/null
-        curl -sSf http://localhost:8000/static/script.js > /dev/null
-        
-    - name: Cleanup
-      if: always()
-      run: |
-        docker stop json-validator || true
-        docker rm json-validator || true
+      - name: Inspect image metadata
+        if: always()
+        run: |
+          docker inspect ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }} | \
+          jq '.[].Config.Labels'
+
+      # Тестирование образа
+      - name: Test Docker image
+        if: always()
+        run: |
+          docker pull ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }} --platform linux/amd64
+          docker run -d -p 8000:8000 --name ${{ env.IMAGE_NAME }} ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }}
+          sleep 5
+          curl -sSf http://localhost:8000/
+          curl -sSf http://localhost:8000/static/style.css
+          curl -sSf http://localhost:8000/static/script.js
+
+      # Очистка
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop ${{ env.IMAGE_NAME }} || true
+          docker rm ${{ env.IMAGE_NAME }} || true
+

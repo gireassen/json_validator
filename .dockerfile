@@ -1,6 +1,17 @@
+# syntax=docker/dockerfile:1.4
+
 FROM python:3.9-alpine AS builder
 
 RUN apk add --no-cache build-base
+
+ARG BUILD_DATE
+ARG VERSION
+ARG COMMIT_SHA
+
+LABEL org.opencontainers.image.created=$BUILD_DATE \
+      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.revision=$COMMIT_SHA \
+      org.opencontainers.image.source="https://github.com/gireassen/json_validator"
 
 WORKDIR /app
 
