@@ -58,7 +58,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          python -m pytest -v test_app.py
+          python -m pytest -v test_server.py
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -97,7 +97,7 @@ jobs:
           curl -sSf http://localhost:8000/static/script.js | grep -q "test js"
           
           # Run integration tests
-          python -m pytest -v test_app.py --base-url http://localhost:8000
+          python -m pytest -v test_server.py --base-url http://localhost:8000
 
       - name: Cleanup
         if: always()
