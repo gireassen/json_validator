@@ -3,18 +3,12 @@ name: Docker Build and Deploy
 on:
   push:
     branches: [main]
-    paths: 
-      - 'Dockerfile'
-      - 'server.py'
-      - 'static/**'
-      - 'templates/**'
+    paths:
+      - '**'
   pull_request:
     branches: [main]
     paths:
-      - 'Dockerfile'
-      - 'server.py'
-      - 'static/**'
-      - 'templates/**'
+      - '**'
 
 env:
   REGISTRY: docker.io
@@ -31,7 +25,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      - name: Debug info
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          ls -la
+    
       # Настройка Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
