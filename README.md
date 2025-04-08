@@ -10,16 +10,25 @@
 
 Простое веб-приложение для валидации JSON.
 
-## Запуск с Docker
+## Запуск с Docker/Podman
 
 ```bash
-docker build -t json-validator .
-docker run -p 8000:8000 json-validator
+# docker
+docker build -t json_validator .
+docker run -p 8000:8000 json_validator
+
+# podman
+podman build -t json_validator .
+podman run -p 8000:8000 json_validator
 ```
 
-## Запуск с DockerHub
+## Запуск c Docker/Podman с DockerHub
 ```bash
+# docker
 docker run -p 8000:8000 gias123/json_validator:latest
+
+# podman
+podman run -p 8000:8000 docker.io/gias123/json_validator:latest
 ```
 
 Приложение будет доступно по адресу: http://localhost:8000
