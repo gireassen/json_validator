@@ -93,7 +93,11 @@ jobs:
         run: |
           docker inspect ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }} | \
           jq '.[].Config.Labels'
-
+    
+  test-image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
       # Тестирование образа
       - name: Test Docker image
         run: |
