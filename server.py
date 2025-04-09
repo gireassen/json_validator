@@ -116,8 +116,8 @@ class JSONValidatorHandler(BaseHTTPRequestHandler):
                 html = f.read().format(
                     json_data=json_data,
                     result=result_html,
-                    error_line=error_line if 'error_line' in locals() else 'null',
-                    error_pos=error_pos if 'error_pos' in locals() else 'null'
+                    error_line=error_line if 'error_line' in locals() and error_line is not None else 'null',
+                    error_pos=error_pos if 'error_pos' in locals() and error_pos is not None else 'null'
                 )
             
             try:
